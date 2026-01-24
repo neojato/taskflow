@@ -1,38 +1,62 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * Robust utility to retrieve environment variables.
+ * In sandboxed and preview environments, variables can be located in:
+ * 1. process.env (Standard for Node/CI)
+ * 2. import.meta.env (Standard for Vite)
+ * 3. window (Global scope/browser injection)
+ */
 const getEnvVar = (name: string): string => {
+  // 1. Check process.env (Most likely source for polyfilled environments)
   try {
-    // Check both standard Vite and process fallback
-    const metaEnv = (import.meta as any).env;
-    if (metaEnv && metaEnv[name]) return metaEnv[name];
-    
     if (typeof process !== 'undefined' && process.env && (process.env as any)[name]) {
       return (process.env as any)[name];
     }
-  } catch (e) {
-    // Fail silently
-  }
+  } catch (e) {}
+
+  // 2. Check import.meta.env (Vite standard)
+  try {
+    const metaEnv = (import.meta as any).env;
+    if (metaEnv && metaEnv[name]) {
+      return metaEnv[name];
+    }
+  } catch (e) {}
+
+  // 3. Check global scope (window or globalThis)
+  try {
+    const globalObj = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : {});
+    if ((globalObj as any)[name]) {
+      return (globalObj as any)[name];
+    }
+    if ((globalObj as any).env && (globalObj as any).env[name]) {
+      return (globalObj as any).env[name];
+    }
+  } catch (e) {}
+
   return '';
 };
 
-// These defaults ensure the app works even if environment injection fails
-const DEFAULT_URL = "https://mgiwpcptfgjlaalnwqed.supabase.co";
-const DEFAULT_KEY = "sb_publishable_Nm0M0z4zICl_rjKJ_aqGXg_pQyJ-9P5";
-
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || DEFAULT_URL;
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY') || DEFAULT_KEY;
+// Use confirmed exact standard names
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 let supabaseInstance: SupabaseClient | null = null;
 
 if (supabaseUrl && supabaseAnonKey) {
   try {
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-    console.debug('TaskFlow [Supabase]: Client initialized with URL:', supabaseUrl);
+    console.debug('TaskFlow [Supabase]: Client successfully initialized.');
   } catch (error) {
-    console.error('TaskFlow [Supabase]: Initialization failed:', error);
+    console.error('TaskFlow [Supabase]: Initialization failed. Check if URL and Key are valid.', error);
   }
 } else {
-  console.error('TaskFlow [Supabase]: Credentials missing. App will not function correctly.');
+  // This message will only appear if the variables are empty across all checked scopes.
+  console.error(
+    `TaskFlow [Supabase]: Configuration missing! 
+    Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are correctly set in your environment.
+    (Scope Status: process.env=${typeof process !== 'undefined' ? 'available' : 'missing'}, window.env=${typeof window !== 'undefined' && (window as any).env ? 'available' : 'missing'})`
+  );
 }
 
 export const supabase = supabaseInstance;
