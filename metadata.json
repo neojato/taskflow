@@ -1,0 +1,5 @@
+{
+  "name": "TaskFlow",
+  "description": "A high-performance project management interface for GitHub Issues, featuring Kanban boards, roadmap timelines, and data-driven tables.",
+  "requestFramePermissions": []
+}
