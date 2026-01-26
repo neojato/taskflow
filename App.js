@@ -35,12 +35,14 @@ const darkTheme = createTheme({
 });
 
 const DRAWER_WIDTH = 240;
-const REPO_STORAGE_KEY = 'taskflow_repo';
+const REPO_STORAGE_KEY = 'taskflow_active_repo';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [repo, setRepo] = useState(localStorage.getItem(REPO_STORAGE_KEY) || '');
-  const [isRepoDialogOpen, setIsRepoDialogOpen] = useState(!repo);
+  const [userRepos, setUserRepos] = useState([]);
+  const [reposLoading, setReposLoading] = useState(false);
+  const [isRepoDialogOpen, setIsRepoDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
   const [issues, setIssues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,6 +77,29 @@ export default function App() {
     }
   }, [githubService, repo]);
 
+  const fetchRepos = useCallback(async () => {
+    if (!githubService) return;
+    setReposLoading(true);
+    try {
+      const repos = await githubService.getUserRepos();
+      setUserRepos(repos);
+      // If no repo is currently set, open the dialog
+      if (!repo) {
+        setIsRepoDialogOpen(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user repositories", err);
+    } finally {
+      setReposLoading(false);
+    }
+  }, [githubService, repo]);
+
+  useEffect(() => {
+    if (session) {
+      fetchRepos();
+    }
+  }, [session, fetchRepos]);
+
   useEffect(() => {
     if (session && repo) fetchIssues();
   }, [session, repo, fetchIssues]);
@@ -102,6 +127,14 @@ export default function App() {
     if (supabase) await supabase.auth.signOut();
     setIssues([]);
     setSession(null);
+    setRepo('');
+    localStorage.removeItem(REPO_STORAGE_KEY);
+  };
+
+  const handleRepoChange = (newRepo) => {
+    setRepo(newRepo);
+    localStorage.setItem(REPO_STORAGE_KEY, newRepo);
+    setIsRepoDialogOpen(false);
   };
 
   const updateStatus = async (issueNumber, newStatus) => {
@@ -157,7 +190,16 @@ export default function App() {
         sx: { width: `calc(100% - ${DRAWER_WIDTH}px)`, ml: `${DRAWER_WIDTH}px`, bgcolor: 'background.default', borderBottom: '1px solid rgba(255,255,255,0.1)', boxShadow: 'none', zIndex: (theme) => theme.zIndex.drawer + 1 } 
       },
         h(Toolbar, { sx: { justifyContent: 'space-between', gap: 2 } },
-          h(Typography, { variant: "h6", sx: { flexShrink: 0, display: { xs: 'none', md: 'block' } } }, repo || "Select Repository"),
+          h(Typography, { 
+            variant: "h6", 
+            sx: { 
+              flexShrink: 0, 
+              display: { xs: 'none', md: 'block' },
+              cursor: 'pointer',
+              '&:hover': { color: 'primary.main' }
+            },
+            onClick: () => setIsRepoDialogOpen(true)
+          }, repo || "Select Repository"),
           
           h(Box, { sx: { flexGrow: 1, maxWidth: 600, display: 'flex', justifyContent: 'center' } },
             h(TextField, {
@@ -218,22 +260,37 @@ export default function App() {
       ),
       h(Box, { component: "main", sx: { flexGrow: 1, p: 3, pt: 10, overflow: 'hidden', bgcolor: 'background.default' } },
         error && h(Alert, { severity: "error", sx: { mb: 2 } }, error),
+        loading && !issues.length && h(Box, { sx: { display: 'flex', justifyContent: 'center', p: 4 } }, h(CircularProgress)),
         activeTab === 'table' && h(TableView, { issues: filteredIssues, onIssueClick: setSelectedIssue }),
         activeTab === 'kanban' && h(KanbanView, { issues: filteredIssues, onUpdateStatus: updateStatus, onIssueClick: setSelectedIssue }),
         activeTab === 'roadmap' && h(RoadmapView, { issues: filteredIssues, onIssueClick: setSelectedIssue }),
         activeTab === 'tests' && h(TestRunner, { githubService, supabase })
       )
     ),
-    h(Dialog, { open: isRepoDialogOpen, onClose: () => repo && setIsRepoDialogOpen(false), fullWidth: true, maxWidth: "xs" },
-      h(Box, { component: "form", onSubmit: (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        const r = fd.get('repo');
-        if (r) { setRepo(r); localStorage.setItem(REPO_STORAGE_KEY, r); setIsRepoDialogOpen(false); }
-      } },
-        h(DialogTitle, null, "Connect Repository"),
-        h(DialogContent, null, h(TextField, { fullWidth: true, required: true, label: "owner/repo", name: "repo", defaultValue: repo, sx: { mt: 1 } })),
-        h(DialogActions, null, h(Button, { type: "submit", variant: "contained" }, "Load"))
+    h(Dialog, { 
+      open: isRepoDialogOpen, 
+      onClose: () => repo && setIsRepoDialogOpen(false), 
+      fullWidth: true, 
+      maxWidth: "sm",
+      PaperProps: { sx: { borderRadius: 3 } }
+    },
+      h(DialogTitle, null, "Connect Repository"),
+      h(DialogContent, null,
+        reposLoading ? h(Box, { sx: { display: 'flex', justifyContent: 'center', p: 3 } }, h(CircularProgress)) :
+        h(FormControl, { fullWidth: true, sx: { mt: 1 } },
+          h(InputLabel, { id: "repo-select-label" }, "Select a Repository"),
+          h(Select, {
+            labelId: "repo-select-label",
+            value: repo,
+            label: "Select a Repository",
+            onChange: (e) => handleRepoChange(e.target.value)
+          },
+            userRepos.map((r) => h(MenuItem, { key: r.id, value: r.full_name }, r.full_name))
+          )
+        )
+      ),
+      h(DialogActions, null, 
+        repo && h(Button, { onClick: () => setIsRepoDialogOpen(false) }, "Cancel")
       )
     ),
     h(IssueDetails, { 

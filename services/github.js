@@ -20,6 +20,15 @@ export class GitHubService {
       .map(processIssue);
   }
 
+  async getUserRepos() {
+    const { data } = await this.octokit.rest.repos.listForAuthenticatedUser({
+      sort: 'updated',
+      per_page: 100,
+    });
+    // Filter to ensure we only show repositories where issues are enabled
+    return data.filter(repo => repo.has_issues);
+  }
+
   async getIssueComments(repoPath, issueNumber) {
     const [owner, repo] = repoPath.split('/');
     const { data } = await this.octokit.rest.issues.listComments({
