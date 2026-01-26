@@ -5,7 +5,7 @@ import { STATUS_STYLING, STATUS_ICONS, PRIORITY_ICONS, PRIORITY_COLORS } from '.
 
 const h = React.createElement;
 
-export default function TableView({ issues }) {
+export default function TableView({ issues, onIssueClick }) {
   const columns = [
     { field: 'number', headerName: '#', width: 80 },
     { field: 'title', headerName: 'Title', flex: 1 },
@@ -39,7 +39,11 @@ export default function TableView({ issues }) {
       columns: columns, 
       slots: { toolbar: GridToolbar }, 
       getRowId: r => r.id,
-      sx: { border: 'none' }
+      onRowClick: (params) => onIssueClick(params.row),
+      sx: { 
+        border: 'none',
+        '& .MuiDataGrid-row': { cursor: 'pointer' }
+      }
     })
   );
 }

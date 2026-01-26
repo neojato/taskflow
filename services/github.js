@@ -20,6 +20,26 @@ export class GitHubService {
       .map(processIssue);
   }
 
+  async getIssueComments(repoPath, issueNumber) {
+    const [owner, repo] = repoPath.split('/');
+    const { data } = await this.octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+    return data;
+  }
+
+  async getIssueEvents(repoPath, issueNumber) {
+    const [owner, repo] = repoPath.split('/');
+    const { data } = await this.octokit.rest.issues.listEvents({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+    return data;
+  }
+
   async createIssue(repoPath, data) {
     const [owner, repo] = repoPath.split('/');
     const { data: issue } = await this.octokit.rest.issues.create({
