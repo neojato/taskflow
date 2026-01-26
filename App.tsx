@@ -42,12 +42,12 @@ import {
   ErrorOutline as ErrorIcon
 } from '@mui/icons-material';
 
-import { supabase } from './lib/supabase.ts';
-import { GitHubService } from './services/github.ts';
-import { GitHubIssue, TaskStatus, TaskPriority } from './types.ts';
-import TableView from './components/TableView.tsx';
-import KanbanView from './components/KanbanView.tsx';
-import RoadmapView from './components/RoadmapView.tsx';
+import { supabase } from './lib/supabase';
+import { GitHubService } from './services/github';
+import { GitHubIssue, TaskStatus, TaskPriority } from './types';
+import TableView from './components/TableView';
+import KanbanView from './components/KanbanView';
+import RoadmapView from './components/RoadmapView';
 
 const darkTheme = createTheme({
   palette: {
@@ -145,27 +145,23 @@ const App: React.FC = () => {
     
     setLoading(true);
     setError(null);
-    console.debug('TaskFlow [Auth]: Starting GitHub login...');
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
           scopes: 'repo user',
-          redirectTo: window.location.href // Redirect back to current URL
+          redirectTo: window.location.origin + window.location.pathname
         }
       });
       
       if (error) {
-        console.error('TaskFlow [Auth]: OAuth error response:', error);
         setError(`Login failed: ${error.message}`);
         setLoading(false);
       } else if (data?.url) {
-        console.debug('TaskFlow [Auth]: Manual redirect to:', data.url);
         window.location.href = data.url;
       }
     } catch (err: any) {
-      console.error('TaskFlow [Auth]: Unexpected failure:', err);
       setError(`Auth system error: ${err.message || "Could not connect to Supabase"}`);
       setLoading(false);
     }

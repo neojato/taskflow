@@ -1,6 +1,6 @@
 import { Octokit } from 'octokit';
-import { GitHubIssue } from '../types.ts';
-import { processIssue } from '../utils.ts';
+import { GitHubIssue } from '../types';
+import { processIssue } from '../utils';
 
 export class GitHubService {
   private octokit: Octokit;
