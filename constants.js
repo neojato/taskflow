@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { TaskStatus, TaskPriority } from './types.js';
 
+const h = React.createElement;
+
 export const STATUS_ORDER = [
   TaskStatus.BACKLOG,
   TaskStatus.NOT_STARTED,
@@ -31,12 +33,12 @@ export const STATUS_STYLING = {
 };
 
 export const STATUS_ICONS = {
-  [TaskStatus.BACKLOG]: <Circle size={16} />,
-  [TaskStatus.NOT_STARTED]: <Clock size={16} />,
-  [TaskStatus.PLANNING]: <Calendar size={16} />,
-  [TaskStatus.IN_PROGRESS]: <PlayCircle size={16} />,
-  [TaskStatus.BLOCKED]: <AlertCircle size={16} />,
-  [TaskStatus.DONE]: <CheckCircle2 size={16} />,
+  [TaskStatus.BACKLOG]: h(Circle, { size: 16 }),
+  [TaskStatus.NOT_STARTED]: h(Clock, { size: 16 }),
+  [TaskStatus.PLANNING]: h(Calendar, { size: 16 }),
+  [TaskStatus.IN_PROGRESS]: h(PlayCircle, { size: 16 }),
+  [TaskStatus.BLOCKED]: h(AlertCircle, { size: 16 }),
+  [TaskStatus.DONE]: h(CheckCircle2, { size: 16 }),
 };
 
 export const PRIORITY_COLORS = {
@@ -46,7 +48,7 @@ export const PRIORITY_COLORS = {
 };
 
 export const PRIORITY_ICONS = {
-  [TaskPriority.P0]: <Zap size={16} />,
-  [TaskPriority.P1]: <Flag size={16} />,
-  [TaskPriority.P2]: <Flag size={16} />,
+  [TaskPriority.P0]: h(Zap, { size: 16 }),
+  [TaskPriority.P1]: h(Flag, { size: 16 }),
+  [TaskPriority.P2]: h(Flag, { size: 16 }),
 };
