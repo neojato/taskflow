@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { Box, Chip, Avatar, Tooltip, LinearProgress, Typography } from '@mui/material';
+import { Box, Avatar, Tooltip, LinearProgress, Typography } from '@mui/material';
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
 import { GitHubIssue, TaskStatus, TaskPriority } from '../types';
-import { STATUS_COLORS, STATUS_ICONS, PRIORITY_ICONS, PRIORITY_COLORS } from '../constants';
+import { STATUS_STYLING, STATUS_ICONS, PRIORITY_ICONS, PRIORITY_COLORS } from '../constants';
 
 interface TableViewProps {
   issues: GitHubIssue[];
@@ -35,10 +34,23 @@ const TableView: React.FC<TableViewProps> = ({ issues }) => {
       width: 150,
       renderCell: (params) => {
         const status = params.value as TaskStatus;
-        const colorClass = STATUS_COLORS[status];
+        const style = STATUS_STYLING[status];
         return (
           <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
-            <Box className={`flex items-center gap-2 px-2 py-1 rounded-full border text-xs font-medium ${colorClass}`}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              px: 1.5, 
+              py: 0.5, 
+              borderRadius: '9999px', 
+              border: '1px solid',
+              borderColor: style.borderColor,
+              bgcolor: style.bgColor,
+              color: style.color,
+              fontSize: '0.75rem',
+              fontWeight: 500
+            }}>
               {STATUS_ICONS[status]}
               {status}
             </Box>
@@ -54,7 +66,13 @@ const TableView: React.FC<TableViewProps> = ({ issues }) => {
         const priority = params.value as TaskPriority;
         return (
           <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
-            <Box className={`flex items-center gap-1 font-bold ${PRIORITY_COLORS[priority]}`}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5, 
+              fontWeight: 700,
+              color: PRIORITY_COLORS[priority]
+            }}>
               {PRIORITY_ICONS[priority]}
               {priority}
             </Box>
@@ -70,12 +88,17 @@ const TableView: React.FC<TableViewProps> = ({ issues }) => {
         const assignees = params.value as any[];
         return (
           <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
-            <Box className="flex -space-x-2">
-              {assignees.map((a) => (
+            <Box sx={{ display: 'flex', marginLeft: '4px' }}>
+              {assignees.map((a, idx) => (
                 <Tooltip key={a.login} title={a.login}>
                   <Avatar 
                     src={a.avatar_url} 
-                    sx={{ width: 24, height: 24, border: '2px solid #0f172a' }} 
+                    sx={{ 
+                      width: 24, 
+                      height: 24, 
+                      border: '2px solid #0f172a',
+                      marginLeft: idx === 0 ? 0 : '-8px'
+                    }} 
                   />
                 </Tooltip>
               ))}
@@ -112,10 +135,16 @@ const TableView: React.FC<TableViewProps> = ({ issues }) => {
         getRowId={(row) => row.id}
         slots={{ toolbar: GridToolbar }}
         disableRowSelectionOnClick
-        autoHeight={false} // Force standard height to avoid intrinsic size errors
+        autoHeight={false}
         sx={{
           border: 'none',
           '& .MuiDataGrid-cell:focus': { outline: 'none' },
+          '& .MuiDataGrid-columnHeaderTitle': {
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            color: 'text.secondary'
+          },
           '& .MuiDataGrid-columnHeaders': {
             bgcolor: 'rgba(255,255,255,0.02)',
             borderBottom: '1px solid rgba(255,255,255,0.08)'

@@ -10,27 +10,25 @@ import {
   useSensors,
   DragStartEvent,
   DragOverEvent,
-  DragEndEvent,
-  defaultDropAnimationSideEffects
+  DragEndEvent
 } from '@dnd-kit/core';
 import { 
-  arrayMove, 
   SortableContext, 
   sortableKeyboardCoordinates, 
   verticalListSortingStrategy,
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Box, Paper, Typography, Avatar, LinearProgress, Tooltip } from '@mui/material';
+import { Box, Paper, Typography, Avatar, LinearProgress } from '@mui/material';
 import { GitHubIssue, TaskStatus, TaskPriority } from '../types';
-import { STATUS_ORDER, STATUS_COLORS, PRIORITY_ICONS, PRIORITY_COLORS } from '../constants';
+import { STATUS_ORDER, STATUS_STYLING, PRIORITY_ICONS, PRIORITY_COLORS } from '../constants';
 
-interface KanbanViewProps {
-  issues: GitHubIssue[];
-  onUpdateStatus: (issueNumber: number, newStatus: TaskStatus) => void;
+interface KanbanCardProps {
+  issue: GitHubIssue;
+  isOverlay?: boolean;
 }
 
-const KanbanCard: React.FC<{ issue: GitHubIssue; isOverlay?: boolean }> = ({ issue, isOverlay }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ issue, isOverlay }) => {
   const {
     attributes,
     listeners,
@@ -60,25 +58,41 @@ const KanbanCard: React.FC<{ issue: GitHubIssue; isOverlay?: boolean }> = ({ iss
         bgcolor: '#1e293b',
         border: '1px solid rgba(255,255,255,0.05)',
         '&:hover': {
-          border: '1px solid rgba(56, 189, 248, 0.3)',
+          borderColor: 'rgba(56, 189, 248, 0.3)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
         }
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-        <Typography variant="caption" color="text.disabled">#{issue.number}</Typography>
+        <Typography variant="caption" sx={{ color: 'text.disabled' }}>#{issue.number}</Typography>
         <Box sx={{ display: 'flex', gap: 0.5, color: PRIORITY_COLORS[issue.priority] }}>
           {PRIORITY_ICONS[issue.priority]}
         </Box>
       </Box>
-      <Typography variant="body2" fontWeight="600" sx={{ mb: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      <Typography variant="body2" sx={{ 
+        mb: 2, 
+        fontWeight: 600,
+        display: '-webkit-box', 
+        WebkitLineClamp: 2, 
+        WebkitBoxOrient: 'vertical', 
+        overflow: 'hidden' 
+      }}>
         {issue.title}
       </Typography>
       
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box className="flex -space-x-1">
-          {issue.assignees.map((a) => (
-            <Avatar key={a.login} src={a.avatar_url} sx={{ width: 24, height: 24, border: '2px solid #1e293b' }} />
+        <Box sx={{ display: 'flex', marginLeft: '4px' }}>
+          {issue.assignees.map((a, idx) => (
+            <Avatar 
+              key={a.login} 
+              src={a.avatar_url} 
+              sx={{ 
+                width: 24, 
+                height: 24, 
+                border: '2px solid #1e293b',
+                marginLeft: idx === 0 ? 0 : '-8px'
+              }} 
+            />
           ))}
         </Box>
         {issue.progress > 0 && (
@@ -111,8 +125,8 @@ const KanbanColumn: React.FC<{ status: TaskStatus; issues: GitHubIssue[] }> = ({
       }}
     >
       <Box sx={{ mb: 2, px: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="subtitle2" fontWeight="700" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" className={`w-2 h-2 rounded-full ${STATUS_COLORS[status].split(' ')[0].replace('text-', 'bg-')}`} />
+        <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_STYLING[status].color }} />
           {status}
         </Typography>
         <Typography variant="caption" sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1, py: 0.25, borderRadius: 1, color: 'text.secondary' }}>
@@ -140,13 +154,19 @@ const KanbanColumn: React.FC<{ status: TaskStatus; issues: GitHubIssue[] }> = ({
             alignItems: 'center', 
             justifyContent: 'center' 
           }}>
-            <Typography variant="caption" color="text.disabled">Drop items here</Typography>
+            <Typography variant="caption" sx={{ color: 'text.disabled' }}>Drop items here</Typography>
           </Box>
         )}
       </Box>
     </Box>
   );
 };
+
+// Added missing interface definition for KanbanViewProps
+interface KanbanViewProps {
+  issues: GitHubIssue[];
+  onUpdateStatus: (issueNumber: number, newStatus: TaskStatus) => Promise<void>;
+}
 
 const KanbanView: React.FC<KanbanViewProps> = ({ issues, onUpdateStatus }) => {
   const [activeIssue, setActiveIssue] = useState<GitHubIssue | null>(null);
@@ -162,10 +182,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ issues, onUpdateStatus }) => {
     if (issue) setActiveIssue(issue);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    // Optional: add logic for temporary state transitions during hover
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveIssue(null);
@@ -175,17 +191,14 @@ const KanbanView: React.FC<KanbanViewProps> = ({ issues, onUpdateStatus }) => {
     const activeIssueId = active.id.toString();
     const overId = over.id.toString();
 
-    // If dropped over a column or an item in a different column
     const draggedIssue = issues.find(i => i.id.toString() === activeIssueId);
     if (!draggedIssue) return;
 
-    // Is overId a column name?
     if (Object.values(TaskStatus).includes(overId as TaskStatus)) {
       if (draggedIssue.status !== overId) {
         onUpdateStatus(draggedIssue.number, overId as TaskStatus);
       }
     } else {
-      // Is overId an issue id?
       const targetIssue = issues.find(i => i.id.toString() === overId);
       if (targetIssue && targetIssue.status !== draggedIssue.status) {
         onUpdateStatus(draggedIssue.number, targetIssue.status);
@@ -199,7 +212,6 @@ const KanbanView: React.FC<KanbanViewProps> = ({ issues, onUpdateStatus }) => {
         sensors={sensors} 
         collisionDetection={closestCorners} 
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         {STATUS_ORDER.map((status) => (

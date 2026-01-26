@@ -1,37 +1,47 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * In Vite-based projects, environment variables starting with VITE_ are 
- * statically replaced at build time. Dynamic access (e.g., env[key]) 
- * often fails in production/sandboxed builds.
+ * TaskFlow Supabase Configuration
+ * 
+ * This module attempts to resolve Supabase credentials through multiple layers:
+ * 1. Vite's static replacement (import.meta.env)
+ * 2. Node-style environment variables (process.env)
+ * 3. Global window/context objects
+ * 4. Explicit hardcoded fallbacks (provided by user)
  */
 
-// 1. Try static access for Vite (Required for build-time injection)
-let supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
-let supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+let supabaseUrl: string | undefined = undefined;
+let supabaseAnonKey: string | undefined = undefined;
 
-// 2. Fallback to process.env (Common for CI/CD and polyfilled environments)
+// 1. Primary: Static access via import.meta.env (Vite standard)
+try {
+  supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+  supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+} catch (e) {}
+
+// 2. Secondary: Static access via process.env
 if (!supabaseUrl || !supabaseAnonKey) {
   try {
     if (typeof process !== 'undefined' && process.env) {
       supabaseUrl = supabaseUrl || (process.env as any).VITE_SUPABASE_URL;
       supabaseAnonKey = supabaseAnonKey || (process.env as any).VITE_SUPABASE_ANON_KEY;
     }
-  } catch (e) {
-    // process.env might not be defined in all browser environments
-  }
+  } catch (e) {}
 }
 
-// 3. Last resort: check global window object
+// 3. Tertiary: Global scope access
 if (!supabaseUrl || !supabaseAnonKey) {
   try {
-    if (typeof window !== 'undefined') {
-      supabaseUrl = supabaseUrl || (window as any).VITE_SUPABASE_URL || (window as any).env?.VITE_SUPABASE_URL;
-      supabaseAnonKey = supabaseAnonKey || (window as any).VITE_SUPABASE_ANON_KEY || (window as any).env?.VITE_SUPABASE_ANON_KEY;
-    }
-  } catch (e) {
-    // window might not be defined in SSR
-  }
+    const globalObj = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : {} as any);
+    supabaseUrl = supabaseUrl || globalObj.VITE_SUPABASE_URL || globalObj.env?.VITE_SUPABASE_URL;
+    supabaseAnonKey = supabaseAnonKey || globalObj.VITE_SUPABASE_ANON_KEY || globalObj.env?.VITE_SUPABASE_ANON_KEY;
+  } catch (e) {}
+}
+
+// 4. Final Fallback: Explicit values provided for the environment
+if (!supabaseUrl || !supabaseAnonKey) {
+  supabaseUrl = supabaseUrl || "https://mgiwpcptfgjlaalnwqed.supabase.co";
+  supabaseAnonKey = supabaseAnonKey || "sb_publishable_Nm0M0z4zICl_rjKJ_aqGXg_pQyJ-9P5";
 }
 
 let supabaseInstance: SupabaseClient | null = null;
@@ -46,7 +56,7 @@ if (supabaseUrl && supabaseAnonKey) {
 } else {
   console.error(
     'TaskFlow [Supabase]: Configuration missing! ' +
-    'Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are correctly set in your environment.'
+    'Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
   );
 }
 
