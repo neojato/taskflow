@@ -94,6 +94,32 @@ export default function App() {
     }
   }, [githubService, repo]);
 
+  // Group and sort repositories for the dropdown
+  const groupedRepos = useMemo(() => {
+    if (!userRepos.length) return [];
+    
+    // Group by owner
+    const groups = userRepos.reduce((acc, repo) => {
+      const owner = repo.owner.login;
+      if (!acc[owner]) acc[owner] = [];
+      acc[owner].push(repo);
+      return acc;
+    }, {});
+
+    // Sort owners A-Z
+    const sortedOwners = Object.keys(groups).sort((a, b) => 
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    );
+
+    // Sort repos within groups A-Z and format
+    return sortedOwners.map(owner => ({
+      owner,
+      repos: groups[owner].sort((a, b) => 
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+      )
+    }));
+  }, [userRepos]);
+
   useEffect(() => {
     if (session) {
       fetchRepos();
@@ -278,14 +304,25 @@ export default function App() {
       h(DialogContent, null,
         reposLoading ? h(Box, { sx: { display: 'flex', justifyContent: 'center', p: 3 } }, h(CircularProgress)) :
         h(FormControl, { fullWidth: true, sx: { mt: 1 } },
-          h(InputLabel, { id: "repo-select-label" }, "Select a Repository"),
+          h(InputLabel, { htmlFor: "repo-native-select", shrink: true }, "Select a Repository"),
           h(Select, {
-            labelId: "repo-select-label",
+            native: true,
             value: repo,
+            onChange: (e) => handleRepoChange(e.target.value),
             label: "Select a Repository",
-            onChange: (e) => handleRepoChange(e.target.value)
+            inputProps: {
+              name: 'repo',
+              id: 'repo-native-select',
+            },
           },
-            userRepos.map((r) => h(MenuItem, { key: r.id, value: r.full_name }, r.full_name))
+            h('option', { value: "", disabled: true }, "Choose a project..."),
+            groupedRepos.map((group) => 
+              h('optgroup', { key: group.owner, label: group.owner },
+                group.repos.map((r) => 
+                  h('option', { key: r.id, value: r.full_name }, r.name)
+                )
+              )
+            )
           )
         )
       ),
