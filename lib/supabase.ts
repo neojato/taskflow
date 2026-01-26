@@ -1,45 +1,38 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Robust utility to retrieve environment variables.
- * In sandboxed and preview environments, variables can be located in:
- * 1. process.env (Standard for Node/CI)
- * 2. import.meta.env (Standard for Vite)
- * 3. window (Global scope/browser injection)
+ * In Vite-based projects, environment variables starting with VITE_ are 
+ * statically replaced at build time. Dynamic access (e.g., env[key]) 
+ * often fails in production/sandboxed builds.
  */
-const getEnvVar = (name: string): string => {
-  // 1. Check process.env (Most likely source for polyfilled environments)
+
+// 1. Try static access for Vite (Required for build-time injection)
+let supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+let supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+
+// 2. Fallback to process.env (Common for CI/CD and polyfilled environments)
+if (!supabaseUrl || !supabaseAnonKey) {
   try {
-    if (typeof process !== 'undefined' && process.env && (process.env as any)[name]) {
-      return (process.env as any)[name];
+    if (typeof process !== 'undefined' && process.env) {
+      supabaseUrl = supabaseUrl || (process.env as any).VITE_SUPABASE_URL;
+      supabaseAnonKey = supabaseAnonKey || (process.env as any).VITE_SUPABASE_ANON_KEY;
     }
-  } catch (e) {}
+  } catch (e) {
+    // process.env might not be defined in all browser environments
+  }
+}
 
-  // 2. Check import.meta.env (Vite standard)
+// 3. Last resort: check global window object
+if (!supabaseUrl || !supabaseAnonKey) {
   try {
-    const metaEnv = (import.meta as any).env;
-    if (metaEnv && metaEnv[name]) {
-      return metaEnv[name];
+    if (typeof window !== 'undefined') {
+      supabaseUrl = supabaseUrl || (window as any).VITE_SUPABASE_URL || (window as any).env?.VITE_SUPABASE_URL;
+      supabaseAnonKey = supabaseAnonKey || (window as any).VITE_SUPABASE_ANON_KEY || (window as any).env?.VITE_SUPABASE_ANON_KEY;
     }
-  } catch (e) {}
-
-  // 3. Check global scope (window or globalThis)
-  try {
-    const globalObj = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : {});
-    if ((globalObj as any)[name]) {
-      return (globalObj as any)[name];
-    }
-    if ((globalObj as any).env && (globalObj as any).env[name]) {
-      return (globalObj as any).env[name];
-    }
-  } catch (e) {}
-
-  return '';
-};
-
-// Use confirmed exact standard names
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+  } catch (e) {
+    // window might not be defined in SSR
+  }
+}
 
 let supabaseInstance: SupabaseClient | null = null;
 
@@ -51,11 +44,9 @@ if (supabaseUrl && supabaseAnonKey) {
     console.error('TaskFlow [Supabase]: Initialization failed. Check if URL and Key are valid.', error);
   }
 } else {
-  // This message will only appear if the variables are empty across all checked scopes.
   console.error(
-    `TaskFlow [Supabase]: Configuration missing! 
-    Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are correctly set in your environment.
-    (Scope Status: process.env=${typeof process !== 'undefined' ? 'available' : 'missing'}, window.env=${typeof window !== 'undefined' && (window as any).env ? 'available' : 'missing'})`
+    'TaskFlow [Supabase]: Configuration missing! ' +
+    'Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are correctly set in your environment.'
   );
 }
 
