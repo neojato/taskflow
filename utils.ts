@@ -1,5 +1,4 @@
-
-import { GitHubIssue, TaskStatus, TaskPriority, GitHubLabel } from './types';
+import { GitHubIssue, TaskStatus, TaskPriority, GitHubLabel } from './types.ts';
 
 export const parseProgress = (body: string | null): number => {
   if (!body) return 0;

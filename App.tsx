@@ -42,12 +42,12 @@ import {
   ErrorOutline as ErrorIcon
 } from '@mui/icons-material';
 
-import { supabase } from './lib/supabase';
-import { GitHubService } from './services/github';
-import { GitHubIssue, TaskStatus, TaskPriority } from './types';
-import TableView from './components/TableView';
-import KanbanView from './components/KanbanView';
-import RoadmapView from './components/RoadmapView';
+import { supabase } from './lib/supabase.ts';
+import { GitHubService } from './services/github.ts';
+import { GitHubIssue, TaskStatus, TaskPriority } from './types.ts';
+import TableView from './components/TableView.tsx';
+import KanbanView from './components/KanbanView.tsx';
+import RoadmapView from './components/RoadmapView.tsx';
 
 const darkTheme = createTheme({
   palette: {
@@ -162,7 +162,6 @@ const App: React.FC = () => {
         setLoading(false);
       } else if (data?.url) {
         console.debug('TaskFlow [Auth]: Manual redirect to:', data.url);
-        // Explicitly set location for sandboxed environments
         window.location.href = data.url;
       }
     } catch (err: any) {

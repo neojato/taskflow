@@ -10,7 +10,7 @@ import {
   Flag,
   Calendar
 } from 'lucide-react';
-import { TaskStatus, TaskPriority } from './types';
+import { TaskStatus, TaskPriority } from './types.ts';
 
 export const STATUS_ORDER = [
   TaskStatus.BACKLOG,
