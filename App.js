@@ -181,8 +181,8 @@ export default function App() {
     if (!searchQuery.trim()) return issues;
     const q = searchQuery.toLowerCase().trim();
     return issues.filter(issue => 
-      issue.title.toLowerCase().includes(q) || 
-      issue.number.toString().includes(q)
+      issue._searchTitle.includes(q) ||
+      issue._searchNumber.includes(q)
     );
   }, [issues, searchQuery]);
 
