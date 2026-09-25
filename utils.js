@@ -30,7 +30,8 @@ export const processIssue = (issue) => {
     ...issue,
     status,
     priority,
-    progress
+    progress,
+    created_at_ms: issue.created_at ? Date.parse(issue.created_at) : 0
   };
 };
 
