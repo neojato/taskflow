@@ -22,6 +22,8 @@ import RoadmapView from './components/RoadmapView.js';
 import TestRunner from './components/TestRunner.js';
 import IssueDetails from './components/IssueDetails.js';
 
+const TASK_STATUS_SET = new Set(Object.values(TaskStatus));
+
 const h = React.createElement;
 
 const darkTheme = createTheme({
@@ -169,7 +171,7 @@ export default function App() {
     setIssues(prev => prev.map(i => i.number === issueNumber ? { ...i, status: newStatus } : i));
     try {
       const issue = issues.find(i => i.number === issueNumber);
-      const otherLabels = issue.labels.filter(l => !Object.values(TaskStatus).includes(l.name)).map(l => l.name);
+      const otherLabels = issue.labels.filter(l => !TASK_STATUS_SET.has(l.name)).map(l => l.name);
       await githubService.updateIssueLabels(repo, issueNumber, [...otherLabels, newStatus]);
     } catch (err) {
       setIssues(originalIssues);
