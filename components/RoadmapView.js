@@ -5,7 +5,7 @@ import { STATUS_STYLING } from '../constants.js';
 const h = React.createElement;
 
 export default function RoadmapView({ issues, onIssueClick }) {
-  const roadmapIssues = useMemo(() => [...issues].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)), [issues]);
+  const roadmapIssues = useMemo(() => [...issues].sort((a, b) => a.created_at_ms - b.created_at_ms), [issues]);
 
   return h(Box, { sx: { bgcolor: '#020617', borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' } },
     roadmapIssues.map(issue => {

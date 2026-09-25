@@ -21,16 +21,19 @@ export const runTests = async (githubService, supabase) => {
 
   // 2. Data Processing Tests
   console.group('Testing: Issue Processing');
+  const dateStr = '2023-01-01T12:00:00Z';
   const mockIssue = {
     number: 1,
     title: 'Test',
     body: '- [x] Work',
-    labels: [{ name: TaskStatus.IN_PROGRESS }, { name: TaskPriority.P0 }]
+    labels: [{ name: TaskStatus.IN_PROGRESS }, { name: TaskPriority.P0 }],
+    created_at: dateStr
   };
   const processed = processIssue(mockIssue);
   assert('Label to Status Mapping', processed.status === TaskStatus.IN_PROGRESS, 'Status should be IN_PROGRESS');
   assert('Label to Priority Mapping', processed.priority === TaskPriority.P0, 'Priority should be P0');
   assert('Progress Injection', processed.progress === 100, 'Progress should be 100');
+  assert('Timestamp Injection', processed.created_at_ms === Date.parse(dateStr), 'created_at_ms should match parsed date');
   console.groupEnd();
 
   // 3. Auth Flow Mock Check
