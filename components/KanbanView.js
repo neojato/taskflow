@@ -56,18 +56,32 @@ export default function KanbanView({ issues, onUpdateStatus, onIssueClick }) {
     }
   };
 
+  const groupedIssues = React.useMemo(() => {
+    const grouped = {};
+    for (const status of STATUS_ORDER) {
+      grouped[status] = [];
+    }
+    for (const issue of issues) {
+      if (grouped[issue.status]) {
+        grouped[issue.status].push(issue);
+      }
+    }
+    return grouped;
+  }, [issues]);
+
   return h(Box, { sx: { display: 'flex', overflowX: 'auto', gap: 3, height: '100%', pb: 4 } },
     h(DndContext, { sensors: sensors, collisionDetection: closestCorners, onDragEnd: handleDragEnd },
-      STATUS_ORDER.map(status => (
-        h(Box, { key: status, sx: { minWidth: 300, width: 300, display: 'flex', flexDirection: 'column' } },
+      STATUS_ORDER.map(status => {
+        const columnIssues = groupedIssues[status];
+        return h(Box, { key: status, sx: { minWidth: 300, width: 300, display: 'flex', flexDirection: 'column' } },
           h(Typography, { variant: "subtitle2", gutterBottom: true, sx: { color: STATUS_STYLING[status].color, fontWeight: 700, px: 1, mb: 2 } }, status),
           h(Box, { sx: { bgcolor: 'rgba(255,255,255,0.02)', p: 1.5, borderRadius: 3, minHeight: 400, flexGrow: 1 } },
-            h(SortableContext, { items: issues.filter(i => i.status === status).map(i => i.id.toString()), strategy: verticalListSortingStrategy },
-              issues.filter(i => i.status === status).map(issue => h(KanbanCard, { key: issue.id, issue: issue, onClick: onIssueClick }))
+            h(SortableContext, { items: columnIssues.map(i => i.id.toString()), strategy: verticalListSortingStrategy },
+              columnIssues.map(issue => h(KanbanCard, { key: issue.id, issue: issue, onClick: onIssueClick }))
             )
           )
-        )
-      ))
+        );
+      })
     )
   );
 }
