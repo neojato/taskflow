@@ -30,7 +30,9 @@ export const processIssue = (issue) => {
     ...issue,
     status,
     priority,
-    progress
+    progress,
+    _searchTitle: issue.title ? issue.title.toLowerCase() : "",
+    _searchNumber: issue.number ? issue.number.toString() : ""
   };
 };
 
